@@ -1,54 +1,21 @@
 from flask.globals import request
+import sqlalchemy
 from sqlalchemy import create_engine
 from sqlalchemy import engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm import scoped_session
 from project_orm import User
 from auth_utils import *
-import numpy as np #for algebric calculations
-import pandas as pd #essential for data reading,writing etc
-import seaborn as sns #visualization library
-import plotly.express as px #ploting parameter's
-import matplotlib #visualization library.
-import matplotlib.pyplot as plt #visualization library.
-import sys #for System-specific parameters and functions.
-from flask import Flask,session,flash,redirect,render_template,url_for
-import warnings
 
+from flask import Flask,session,flash,redirect,render_template,url_for
+
+app = Flask(__name__)
+app.secret_key = "the basics of life with python"
 
 def get_db():
     engine = create_engine('sqlite:///database.db')
     Session = scoped_session(sessionmaker(bind=engine))
     return Session()
-
-def load_dataset():
-    df=pd.read_csv('naukri_com-job_sample.csv') 
-    return df
-
-def preprocess_dataset(df):
-    # all processing code
-    pay_split = df['payrate'].str[0:-1].str.split('-', expand=True)
-    pay_split[1] =  pay_split[1].str.strip()
-    #remove comma 
-    pay_split[1] = pay_split[1].str.replace(',', '')
-    #remove all character in two condition
-    # 1 remove if only character
-    # 2 if start in number remove after all character
-    pay_split[1] = pay_split[1].str.replace(r'\D.*','')
-    pay_split[0] = pd.to_numeric(pay_split[0], errors='coerce')
-    pay_split[1] = pd.to_numeric(pay_split[1], errors='coerce')
-    pay=pd.concat([pay_split[0], pay_split[1]], axis=1, sort=False)
-    pay.rename(columns={0:'min_pay', 1:'max_pay'}, inplace=True )
-    df=pd.concat([df, pay], axis=1, sort=False)
-    return df
-
-
-warnings.filterwarnings('ignore')
-plt.rcParams['figure.figsize'] = (10, 10)
-app = Flask(__name__)
-app.secret_key = "the basics of life with python"
-df = load_dataset()
-df = preprocess_dataset(df)
 
 @app.route('/',methods=['GET','POST'])
 def index():
@@ -128,26 +95,7 @@ def logout():
         flash('you have been logged out','warning')
     return redirect('/')
 
-@app.route('/analysis/1')
-def analysis1():
-    count_missing = df.isnull().sum()
-    percent_missing =  count_missing* 100 / df.shape[0]
-    missing_value_df = pd.DataFrame({'count_missing': count_missing,
-                                 'percent_missing': percent_missing})
-
-    missing_value_df.style.background_gradient(cmap='Spectral')
-
-    unique_df = unique_df = pd.DataFrame([[df[i].nunique()]for i in df.columns], columns=['Unique Values'], index=df.columns)
-    unique_df.style.background_gradient(cmap='magma')
-    nrow,ncol=df.shape
-    info1 = f'There are {nrow} rows and {ncol} colunms in the dataset'
-    return render_template('analysis1.html',title='Analysis for values',
-                           data=missing_value_df.to_html(),
-                           unique_data = unique_df.to_html(), 
-                           info1 = info1,
-                           columns = df.columns.to_list())
-
 if __name__ == "__main__":
-    app.run(debug=True,threaded=True, host='0.0.0.0')
+    app.run(debug=True,threaded=True)
 
 
